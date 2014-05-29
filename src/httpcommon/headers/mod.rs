@@ -1,7 +1,7 @@
 //! HTTP headers.
 
 use std::any::{Any, AnyRefExt};
-use std::mem::{transmute, transmute_copy};
+use std::cast::{transmute, transmute_copy};
 use std::intrinsics::TypeId;
 use std::fmt;
 use std::io::MemWriter;

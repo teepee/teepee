@@ -1,7 +1,7 @@
 //! HTTP status codes.
 
 use std::fmt;
-use std::mem::transmute;
+use std::cast::transmute;
 
 /// An HTTP status code (`Status-Code` in RFC 2616).
 ///
