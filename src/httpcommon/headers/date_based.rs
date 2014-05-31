@@ -167,16 +167,39 @@ mod tests {
 
     #[test]
     fn test_retry() {
-        let mut headers = Headers::new();
-        expect_none(headers.get(RETRY_AFTER));
-        headers.set(RETRY_AFTER, DeltaRA(42u));
-        expect(headers.get(RETRY_AFTER), DeltaRA(42u), bytes!("42"));
-        headers.remove(&RETRY_AFTER);
-        expect_none(headers.get(RETRY_AFTER));
-     
         let now = time::now();
-        let now_raw = fmt_header(&now);
-        headers.set(RETRY_AFTER, DateRA(now.clone()));
-        expect(headers.get(RETRY_AFTER), DateRA(now.clone()), now_raw.as_slice());
+        {
+            let now_raw = fmt_header(&now);
+            let h: Option<RetryAfter> = Header::parse_header([now_raw]);
+            assert_eq!(Some(DateRA(now.clone())), h);
+        }
+
+        {
+            let now1_raw = fmt_header(&now);
+            let now2_raw = fmt_header(&now);
+            let h: Option<RetryAfter> = Header::parse_header([now1_raw, now2_raw]);
+            assert_eq!(None, h);
+        }
+
+        {
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("foo"))]);
+            assert_eq!(None, h);
+        }
+
+        {
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("42"))]);
+            assert_eq!(Some(DeltaRA(42u)), h);
+        }
+
+        {
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("42")),
+                                                              Vec::from_slice(bytes!("24"))]);
+            assert_eq!(None, h);
+        }
+
+        {
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("-42"))]);
+            assert_eq!(None, h);
+        }
     }
 }
