@@ -97,7 +97,7 @@ impl Header for Tm {
     }
  
     fn fmt_header(&self, w: &mut Writer) -> IoResult<()> {
-        write!(w, "{}", self.to_utc().strftime("%a, %d %b %Y %T GMT"))
+        write!(w, "{}", self.to_utc().rfc822())
     }
 }
 
@@ -165,9 +165,18 @@ mod tests {
         expect(headers.get(DATE), now.clone(), now_raw.as_slice());
     }
 
+    fn get_tm() -> time::Tm
+    {
+        // we need a timestamp, but the gmtoff, yday and nsec will be thrown away when its formatted
+        let mut now = time::now_utc();
+        now.tm_nsec = 0;
+        now.tm_yday = 0;
+        now
+    }
+
     #[test]
     fn test_retry() {
-        let now = time::now();
+        let now = get_tm();
         {
             let now_raw = fmt_header(&now);
             let h: Option<RetryAfter> = Header::parse_header([now_raw]);
