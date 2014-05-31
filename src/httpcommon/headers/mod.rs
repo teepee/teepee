@@ -16,7 +16,9 @@ pub use self::date_based::{EXPIRES, Expires, DATE, IF_MODIFIED_SINCE,
                            IF_UNMODIFIED_SINCE, LAST_MODIFIED,
                            RETRY_AFTER, RetryAfter, AGE};
 
-// I dunno
+/// helper that simultaneously fetches the first raw header value, and
+/// ensures that we only successfully parse if there is one and only
+/// one such value.
 macro_rules! require_single_field {
     ($field_values:expr) => ({
         let mut iter = $field_values.iter();
