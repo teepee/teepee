@@ -9,12 +9,23 @@ use std::from_str::from_str;
 use self::time::{strptime, Tm};
 use super::{Header, HeaderMarker};
 
-header!(EXPIRES, "expires", Expires)
-header!(DATE, "date", Tm)
-header!(IF_MODIFIED_SINCE, "if-modified-since", Tm)
-header!(IF_UNMODIFIED_SINCE, "if-unmodified-since", Tm)
-header!(LAST_MODIFIED, "last-modified", Tm)
-header!(RETRY_AFTER, "retry-after", RetryAfter)
+header!(#[doc="The Expires entity-header field gives the date/time after which the response is considered stale."]
+        EXPIRES, "expires", Expires)
+
+header!(#[doc="The Date general-header field represents the date and time at which the message was originated."]
+        DATE, "date", Tm)
+
+header!(#[doc="The If-Modified-Since request-header field is used with a method to make it conditional: if the requested variant has not been modified since the time specified in this field, an entity will not be returned from the server; instead, a 304 (not modified) response will be returned without any message-body."]
+        IF_MODIFIED_SINCE, "if-modified-since", Tm)
+
+header!(#[doc="The If-Unmodified-Since request-header field is used with a method to make it conditional. If the requested resource has not been modified since the time specified in this field, the server SHOULD perform the requested operation as if the If-Unmodified-Since header were not present."]
+        IF_UNMODIFIED_SINCE, "if-unmodified-since", Tm)
+
+header!(#[doc="The Last-Modified entity-header field indicates the date and time at which the origin server believes the variant was last modified."]
+        LAST_MODIFIED, "last-modified", Tm)
+
+header!(#[doc="The Retry-After response-header field can be used with a 503 (Service Unavailable) response to indicate how long the service is expected to be unavailable to the requesting client."]
+        RETRY_AFTER, "retry-after", RetryAfter)
 
 impl Header for uint {
     fn parse_header(raw: &[Vec<u8>]) -> Option<uint> {

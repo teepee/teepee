@@ -30,9 +30,10 @@ macro_rules! require_single_field {
 /// defines a struct and a ``HeaderMarker`` for it so that together they
 /// identify the same header type
 macro_rules! header {
-    ($struct_ident:ident, $header_name:expr, $output_type:ty) => (
+    (#[$attr:meta] $struct_ident:ident, $header_name:expr, $output_type:ty) => (
         #[allow(missing_doc)]
         #[allow(non_camel_case_types)]
+        #[$attr] 
         pub struct $struct_ident;
  
         impl HeaderMarker<$output_type> for $struct_ident {
