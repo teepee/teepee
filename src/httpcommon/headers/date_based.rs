@@ -16,14 +16,14 @@ header!(IF_UNMODIFIED_SINCE, "if-unmodified-since", Tm)
 header!(LAST_MODIFIED, "last-modified", Tm)
 header!(RETRY_AFTER, "retry-after", RetryAfter)
 
-impl Header for int {
-    fn parse_header(raw: &[Vec<u8>]) -> Option<int> {
+impl Header for uint {
+    fn parse_header(raw: &[Vec<u8>]) -> Option<uint> {
         let raw = require_single_field!(raw);
         let raw = match std::str::from_utf8(raw) {
             Some(raw) => raw,
             None => return None,
         };
-        from_str::<int>(raw)
+        from_str::<uint>(raw)
     }
     fn fmt_header(&self, w: &mut Writer) -> IoResult<()> {
         write!(w, "{}", self.to_str())
@@ -96,7 +96,7 @@ pub enum RetryAfter {
     /// A valid Retry-After header date.
     DateRA(Tm),
     /// A valid Retry-After header delta value.
-    DeltaRA(int),
+    DeltaRA(uint),
 }
 
 impl Header for RetryAfter {
@@ -152,5 +152,20 @@ mod tests {
         let now_raw = fmt_header(&now);
         headers.set(DATE, now.clone());
         expect(headers.get(DATE), now.clone(), now_raw.as_slice());
+    }
+
+    #[test]
+    fn test_retry() {
+        let mut headers = Headers::new();
+        expect_none(headers.get(RETRY_AFTER));
+        headers.set(RETRY_AFTER, DeltaRA(42u));
+        expect(headers.get(RETRY_AFTER), DeltaRA(42u), bytes!("42"));
+        headers.remove(&RETRY_AFTER);
+        expect_none(headers.get(RETRY_AFTER));
+     
+        let now = time::now();
+        let now_raw = fmt_header(&now);
+        headers.set(RETRY_AFTER, DateRA(now.clone()));
+        expect(headers.get(RETRY_AFTER), DateRA(now.clone()), now_raw.as_slice());
     }
 }
