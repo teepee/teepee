@@ -32,6 +32,7 @@ macro_rules! require_single_field {
 macro_rules! header {
     ($struct_ident:ident, $header_name:expr, $output_type:ty) => (
         #[allow(missing_doc)]
+        #[allow(non_camel_case_types)]
         pub struct $struct_ident;
  
         impl HeaderMarker<$output_type> for $struct_ident {

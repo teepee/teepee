@@ -25,7 +25,6 @@
 //#![deny(unstable)]
 #![deny(unused_result)]
 #![deny(deprecated_owned_vector)]
-#![allow(non_camel_case_types)]
 
 extern crate collections;
 
