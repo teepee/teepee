@@ -12,6 +12,10 @@ use collections::hashmap::HashMap;
 
 use self::internals::Item;
 
+pub use self::date_based::{EXPIRES, Expires, DATE, IF_MODIFIED_SINCE,
+                           IF_UNMODIFIED_SINCE, LAST_MODIFIED,
+                           RETRY_AFTER, RetryAfter};
+pub mod date_based;
 mod internals;
 
 /// The data type of an HTTP header for encoding and decoding.
