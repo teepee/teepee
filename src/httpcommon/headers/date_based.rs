@@ -27,6 +27,9 @@ header!(#[doc="The Last-Modified entity-header field indicates the date and time
 header!(#[doc="The Retry-After response-header field can be used with a 503 (Service Unavailable) response to indicate how long the service is expected to be unavailable to the requesting client."]
         RETRY_AFTER, "retry-after", RetryAfter)
 
+header!(#[doc="The Age response-header field conveys the sender's estimate of the amount of time since the response (or its revalidation) was generated at the origin server."]
+        AGE, "age", uint)
+
 impl Header for uint {
     fn parse_header(raw: &[Vec<u8>]) -> Option<uint> {
         let raw = require_single_field!(raw);
@@ -165,8 +168,7 @@ mod tests {
         expect(headers.get(DATE), now.clone(), now_raw.as_slice());
     }
 
-    fn get_tm() -> time::Tm
-    {
+    fn get_tm() -> time::Tm {
         // we need a timestamp, but the gmtoff, yday and nsec will be thrown away when its formatted
         let mut now = time::now_utc();
         now.tm_nsec = 0;
@@ -208,6 +210,25 @@ mod tests {
 
         {
             let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("-42"))]);
+            assert_eq!(None, h);
+        }
+    }
+
+    #[test]
+    fn test_age() {
+        {
+            let h: Option<uint> = Header::parse_header([Vec::from_slice(bytes!("42"))]);
+            assert_eq!(Some(42u), h);
+        }
+
+        {
+            let h: Option<uint> = Header::parse_header([Vec::from_slice(bytes!("42")),
+                                                        Vec::from_slice(bytes!("24"))]);
+            assert_eq!(None, h);
+        }
+
+        {
+            let h: Option<uint> = Header::parse_header([Vec::from_slice(bytes!("-42"))]);
             assert_eq!(None, h);
         }
     }

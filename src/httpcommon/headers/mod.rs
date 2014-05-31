@@ -14,7 +14,7 @@ use self::internals::Item;
 
 pub use self::date_based::{EXPIRES, Expires, DATE, IF_MODIFIED_SINCE,
                            IF_UNMODIFIED_SINCE, LAST_MODIFIED,
-                           RETRY_AFTER, RetryAfter};
+                           RETRY_AFTER, RetryAfter, AGE};
 
 // I dunno
 macro_rules! require_single_field {
