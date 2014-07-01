@@ -1666,24 +1666,27 @@ impl ToPrimitive for StatusCode {
 /// [RFC 7231, section 6 (Response Status Codes)]
 /// (https://tools.ietf.org/html/rfc7231#section-6):
 ///
-/// > The first digit of the Status-Code defines the class of response. The
-/// > last two digits do not have any categorization role.
+/// > The status-code element is a three-digit integer code giving the
+/// > result of the attempt to understand and satisfy the request.
 /// >
-/// > ...
-/// >
-/// > HTTP status codes are extensible. HTTP applications are not required
-/// > to understand the meaning of all registered status codes, though such
-/// > understanding is obviously desirable. However, applications MUST
+/// > HTTP status codes are extensible.  HTTP clients are not required to
+/// > understand the meaning of all registered status codes, though such
+/// > understanding is obviously desirable.  However, a client MUST
 /// > understand the class of any status code, as indicated by the first
-/// > digit, and treat any unrecognized response as being equivalent to the
-/// > x00 status code of that class, with the exception that an
-/// > unrecognized response MUST NOT be cached. For example, if an
-/// > unrecognized status code of 431 is received by the client, it can
-/// > safely assume that there was something wrong with its request and
-/// > treat the response as if it had received a 400 status code. In such
-/// > cases, user agents SHOULD present to the user the entity returned
-/// > with the response, since that entity is likely to include human-
-/// > readable information which will explain the unusual status.
+/// > digit, and treat an unrecognized status code as being equivalent to
+/// > the x00 status code of that class, with the exception that a
+/// > recipient MUST NOT cache a response with an unrecognized status code.
+/// >
+/// > For example, if an unrecognized status code of 471 is received by a
+/// > client, the client can assume that there was something wrong with its
+/// > request and treat the response as if it had received a 400 (Bad
+/// > Request) status code.  The response message will usually contain a
+/// > representation that explains the status.
+/// >
+/// > The first digit of the status-code defines the class of response.
+/// > The last two digits do not have any categorization role.  There are
+/// > five values for the first digit:
+/// > The first digit of the Status-Code defines the class of response. The
 ///
 /// This can be used in cases where a status code’s meaning is unknown, also,
 /// to get the appropriate *category* of status.
