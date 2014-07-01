@@ -1731,13 +1731,19 @@ impl StatusClass {
     /// > digit, and treat an unrecognized status code as being equivalent to
     /// > the x00 status code of that class, with the exception that a
     /// > recipient MUST NOT cache a response with an unrecognized status code.
+    /// >
+    /// > For example, if an unrecognized status code of 471 is received by a
+    /// > client, the client can assume that there was something wrong with its
+    /// > request and treat the response as if it had received a 400 (Bad
+    /// > Request) status code.  The response message will usually contain a
+    /// > representation that explains the status.
     ///
-    /// This is demonstrated thusly (I’ll use 432):
+    /// This is demonstrated thusly (I’ll use 471):
     ///
     /// ```rust
-    /// # use httpcommon::status::{Code432, BadRequest};
+    /// # use httpcommon::status::{Code471, BadRequest};
     /// // Suppose we have received this status code.
-    /// let status = Code432;
+    /// let status = Code471;
     ///
     /// // Uh oh! Don’t know what to do with it.
     /// // Let’s fall back to the default:
