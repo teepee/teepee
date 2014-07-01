@@ -1686,7 +1686,6 @@ impl ToPrimitive for StatusCode {
 /// > The first digit of the status-code defines the class of response.
 /// > The last two digits do not have any categorization role.  There are
 /// > five values for the first digit:
-/// > The first digit of the Status-Code defines the class of response. The
 ///
 /// This can be used in cases where a status code’s meaning is unknown, also,
 /// to get the appropriate *category* of status.
