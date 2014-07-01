@@ -652,13 +652,13 @@ pub enum StatusCode {
     LengthRequired = 411,
     /// 412 Precondition Failed
     PreconditionFailed = 412,
-    /// 413 Request Entity Too Large
+    /// 413 Payload Too Large
     PayloadTooLarge = 413,
-    /// 414 Request-URI Too Long
+    /// 414 URI Too Long
     UriTooLong = 414,
     /// 415 Unsupported Media Type
     UnsupportedMediaType = 415,
-    /// 416 Requested Range Not Satisfiable
+    /// 416 Range Not Satisfiable
     RangeNotSatisfiable = 416,
     /// 417 Expectation Failed
     ExpectationFailed = 417,
