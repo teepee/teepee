@@ -9,7 +9,7 @@ Status: in design
 =================
 
 Teepee is still mostly in design. Most of the information about it is available
-`on Chris Morgan’s blog <teepee blog>`_.
+`on Chris Morgan’s blog`_.
 
 In the mean time, if you want HTTP, please use rust-http_ (by the same author,
 but not designed deliberately); it’s in maintenance mode, so new things won’t
@@ -55,7 +55,7 @@ the MIT license and the Apache license (version 2.0).
 
 See LICENSE-APACHE, LICENSE-MIT, and COPYRIGHT for details.
 
-.. _teepee blog: http://chrismorgan.info/blog/tags/teepee.html
+.. _on Chris Morgan’s blog: http://chrismorgan.info/blog/tags/teepee.html
 .. _rust-http: https://github.com/chris-morgan/rust-http
 .. _Chris Morgan: http://chrismorgan.info/
 .. _chris-morgan: https://github.com/chris-morgan

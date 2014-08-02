@@ -39,7 +39,7 @@ pub struct Item {
     raw: Option<Vec<Vec<u8>>>,
 
     /// A strongly typed header which has been parsed from the raw value.
-    typed: Option<Box<Header>:'static>,
+    typed: Option<Box<Header + 'static>>,
 }
 
 impl Item {
@@ -60,7 +60,7 @@ impl Item {
         Item {
             raw_valid: false,
             raw: None,
-            typed: Some(box typed as Box<Header>),
+            typed: Some(box typed as Box<Header + 'static>),
         }
     }
 
@@ -132,8 +132,8 @@ impl Item {
                 let h: Option<H> = Header::parse_header(self.raw.get_ref().as_slice());
                 match h {
                     Some(h) => {
-                        self.typed = Some(box h as Box<Header>);
-                        Some(unsafe { self.typed.get_mut_ref().as_mut_unchecked::<H>() })
+                        self.typed = Some(box h as Box<Header + 'static>);
+                        Some(unsafe { self.typed.get_mut_ref().downcast_mut_unchecked::<H>() })
                     },
                     None => None,
                 }
@@ -142,7 +142,7 @@ impl Item {
                 if invalidate_raw {
                     self.raw_valid = false;
                 }
-                Some(unsafe { h.as_mut_unchecked::<H>() })
+                Some(unsafe { h.downcast_mut_unchecked::<H>() })
             },
             Some(ref mut h) => {
                 if !self.raw_valid {
@@ -162,8 +162,8 @@ impl Item {
                 let otyped: Option<H> = Header::parse_header(self.raw.get_ref().as_slice());
                 match otyped {
                     Some(typed) => {
-                        *h = box typed as Box<Header>;
-                        Some(unsafe { h.as_mut_unchecked::<H>() })
+                        *h = box typed as Box<Header + 'static>;
+                        Some(unsafe { h.downcast_mut_unchecked::<H>() })
                     },
                     None => None,
                 }
@@ -199,7 +199,7 @@ impl Item {
     /// This invalidates the typed representation.
     pub fn set_typed<'a, H: Header + 'static>(&mut self, value: H) {
         self.raw_valid = false;
-        self.typed = Some(box value as Box<Header>);
+        self.typed = Some(box value as Box<Header + 'static>);
     }
 }
 
@@ -227,13 +227,13 @@ mod tests {
         let item = Item {
             raw_valid: raw_valid,
             raw: raw,
-            typed: typed.map(|h| box h as Box<Header>),
+            typed: typed.map(|h| box h as Box<Header + 'static>),
         };
         item.assert_invariants();
         item
     }
 
-    #[deriving(Eq, Clone, Show)]
+    #[deriving(PartialEq, Eq, Clone, Show)]
     struct StrongType(Vec<Vec<u8>>);
     #[allow(non_camel_case_types)]
     type st = StrongType;
@@ -248,7 +248,7 @@ mod tests {
             let mut first = true;
             for field in vec.iter() {
                 if !first {
-                    try!(w.write([',' as u8, ' ' as u8]))
+                    try!(w.write(b", "))
                 }
                 try!(w.write(field.as_slice()))
                 first = false;
@@ -257,7 +257,7 @@ mod tests {
         }
     }
 
-    #[deriving(Eq, Clone, Show)]
+    #[deriving(PartialEq, Eq, Clone, Show)]
     struct NonParsingStrongType(StrongType);
     #[allow(non_camel_case_types)]
     type np = NonParsingStrongType;
@@ -273,47 +273,47 @@ mod tests {
         }
     }
 
-    fn assert_headers_eq<H: Header + Clone + Eq + fmt::Show + 'static>(item: &Item, other: &Item) {
+    fn assert_headers_eq<H: Header + Clone + PartialEq + fmt::Show + 'static>(item: &Item, other: &Item) {
         item.assert_invariants();
         assert_eq!(item.raw_valid, other.raw_valid);
         assert_eq!(item.raw, other.raw);
         if item.typed.is_some() || other.typed.is_some() {
             let it = item.typed.get_ref();
             let ot = other.typed.get_ref();
-            let ir = it.as_ref::<H>().expect("assert_headers_eq: expected Some item, got None");
-            let or = ot.as_ref::<H>().expect("assert_headers_eq: expected Some other, got None");
+            let ir = it.downcast_ref::<H>().expect("assert_headers_eq: expected Some item, got None");
+            let or = ot.downcast_ref::<H>().expect("assert_headers_eq: expected Some other, got None");
             assert_eq!(ir, or);
         }
     }
 
     // Dummy 1: multiple headers
     fn d1raw() -> Vec<Vec<u8>> {
-        vec![Vec::from_slice(bytes!("ab")), Vec::from_slice(bytes!("cd"))]
-        //vec![vec!['a' as u8, 'b' as u8], vec!['c' as u8, 'd' as u8]]
+        vec![Vec::from_slice(b"ab"), Vec::from_slice(b"cd")]
+        //vec![vec![b'a', b'b'], vec![b'c', b'd']]
     }
     fn d1st() -> StrongType { StrongType(d1raw()) }
     fn d1np() -> NonParsingStrongType { NonParsingStrongType(d1st()) }
 
     // Dummy 2: 1, but merged
     fn d2raw() -> Vec<Vec<u8>> {
-        vec![Vec::from_slice(bytes!("ab, cd"))]
-        //vec![vec!['a' as u8, 'b' as u8, ',' as u8, ' ' as u8, 'c' as u8, 'd' as u8]]
+        vec![Vec::from_slice(b"ab, cd")]
+        //vec![vec![b'a', b'b', b',', b' ', b'c', b'd']]
     }
     //fn d2st() -> StrongType { StrongType(d2raw()) }
     //fn d2np() -> NonParsingStrongType { NonParsingStrongType(d2st()) }
 
     // Dummy 3: multiple headers, different from 1
     fn d3raw() -> Vec<Vec<u8>> {
-        vec![Vec::from_slice(bytes!("12")), Vec::from_slice(bytes!("34"))]
-        //vec![vec!['1' as u8, '2' as u8], vec!['3' as u8, '4' as u8]]
+        vec![Vec::from_slice(b"12"), Vec::from_slice(b"34")]
+        //vec![vec![b'1', b'2'], vec![b'3', b'4']]
     }
     fn d3st() -> StrongType { StrongType(d3raw()) }
     fn d3np() -> NonParsingStrongType { NonParsingStrongType(d3st()) }
 
     // Dummy 4: 3, but merged
     fn d4raw() -> Vec<Vec<u8>> {
-        vec![Vec::from_slice(bytes!("12, 34"))]
-        //vec![vec!['1' as u8, '2' as u8, ',' as u8, ' ' as u8, '3' as u8, '4' as u8]]
+        vec![Vec::from_slice(b"12, 34")]
+        //vec![vec![b'1', b'2', b',', b' ', b'3', b'4']]
     }
     fn d4st() -> StrongType { StrongType(d4raw()) }
     //fn d4np() -> NonParsingStrongType { NonParsingStrongType(d4st()) }

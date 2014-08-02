@@ -1,5 +1,6 @@
 //! HTTP status codes.
 
+use std::cmp::{PartialEq, Eq, PartialOrd, Ord};
 use std::fmt;
 use std::mem::transmute;
 
@@ -1551,13 +1552,18 @@ impl StatusCode {
 
     /// Determine the class of a status code, based on its first digit.
     pub fn class(&self) -> StatusClass {
-        match *self as u16 {
-            100..199 => Informational,
-            200..299 => Success,
-            300..399 => Redirection,
-            400..499 => ClientError,
-            500..599 => ServerError,
-            _ => unreachable!(),
+        let code = *self as u16;  // Range of possible values: 100..599.
+        // We could match 100..199 &c., but this way we avoid unreachable!() at the end.
+        if code < 200 {
+            Informational
+        } else if code < 300 {
+            Success
+        } else if code < 400 {
+            Redirection
+        } else if code < 500 {
+            ClientError
+        } else {
+            ServerError
         }
     }
 }
@@ -1588,14 +1594,14 @@ impl fmt::Show for StatusCode {
 
 // Specified manually because the codegen for derived is slow (at the time of writing on the machine
 // of writing, 1.2 seconds) and verbose (though the optimiser cuts it down to size).
-impl Eq for StatusCode {
+impl PartialEq for StatusCode {
     #[inline]
     fn eq(&self, other: &StatusCode) -> bool {
         *self as u16 == *other as u16
     }
 }
 
-impl TotalEq for StatusCode {}
+impl Eq for StatusCode {}
 
 // Ditto (though #[deriving(Clone)] only takes about 0.4 seconds).
 impl Clone for StatusCode {
@@ -1625,14 +1631,14 @@ impl FromPrimitive for StatusCode {
     }
 }
 
-impl Ord for StatusCode {
+impl PartialOrd for StatusCode {
     #[inline]
-    fn lt(&self, other: &StatusCode) -> bool {
-        (*self as u16) < (*other as u16)
+    fn partial_cmp(&self, other: &StatusCode) -> Option<Ordering> {
+        (*self as u16).partial_cmp(&(*other as u16))
     }
 }
 
-impl TotalOrd for StatusCode {
+impl Ord for StatusCode {
     #[inline]
     fn cmp(&self, other: &StatusCode) -> Ordering {
         if *self < *other {
@@ -1683,7 +1689,7 @@ impl ToPrimitive for StatusCode {
 /// to get the appropriate *category* of status.
 ///
 /// For HTTP/2.0, the 1xx Informational class is invalid.
-#[deriving(Clone, Eq, TotalEq, Ord, TotalOrd)]
+#[deriving(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StatusClass {
     /// 1xx: Informational - Request received, continuing process
     Informational = 100,

@@ -1,10 +1,9 @@
 //! The Teepee HTTP client.
 
-#![crate_id = "httpc#0.1-pre"]
+#![crate_name = "httpc"]
 #![comment = "The Teepee HTTP client"]
 #![license = "MIT/ASL2"]
-#![crate_type = "dylib"]
-#![crate_type = "rlib"]
+#![crate_type = "lib"]
 
 #![doc(html_logo_url = "http://teepee.rs/logo.100.png",
        html_root_url = "http://www.rust-ci.org/teepee/teepee/doc/")]
@@ -15,7 +14,6 @@
 #![deny(missing_doc)]
 //#![deny(unstable)]
 #![deny(unused_result)]
-#![deny(deprecated_owned_vector)]
 
 extern crate httpcommon;
 

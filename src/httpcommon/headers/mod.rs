@@ -1,6 +1,6 @@
 //! HTTP headers.
 
-use std::any::{Any, AnyRefExt};
+use std::any::{AnyRefExt};
 use std::mem::{transmute, transmute_copy};
 use std::intrinsics::TypeId;
 use std::fmt;
@@ -8,7 +8,7 @@ use std::io::{MemWriter, IoResult};
 use std::raw::TraitObject;
 use std::str::SendStr;
 
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 
 use self::internals::Item;
 
@@ -49,15 +49,25 @@ macro_rules! header {
 pub mod date_based;
 mod internals;
 
+/// An inner trait to ensure that only this module can call `get_type_id()`.
+trait AnyPrivate {
+    /// Get the `TypeId` of `self`
+    fn get_type_id(&self) -> TypeId;
+}
+
+impl<T: 'static> AnyPrivate for T {
+    fn get_type_id(&self) -> TypeId { TypeId::of::<T>() }
+}
+
 /// The data type of an HTTP header for encoding and decoding.
-pub trait Header: Any {
+pub trait Header: AnyPrivate {
     /// Parse a header from one or more header field values, returning some value if successful or
     /// `None` if parsing fails.
     ///
     /// Most headers only accept a single header field (i.e. they should return `None` if the outer
     /// slice contains other than one value), but some may accept multiple header field values; in
     /// such cases, they MUST be equivalent to having them all as a comma-separated single field
-    /// (RFC 2616), with exceptions for things like dropping invalid values.
+    /// (RFC 7230, section 3.3.2 Field Order), with exceptions for things like dropping invalid values.
     fn parse_header(raw_field_values: &[Vec<u8>]) -> Option<Self>;
 
     /// Introducing an `Err` value that does *not* come from the writer is incorrect behaviour and
@@ -83,9 +93,9 @@ impl<'a> AnyRefExt<'a> for &'a Header {
     }
 
     #[inline]
-    fn as_ref<T: 'static>(self) -> Option<&'a T> {
+    fn downcast_ref<T: 'static>(self) -> Option<&'a T> {
         if self.is::<T>() {
-            Some(unsafe { self.as_ref_unchecked() })
+            Some(unsafe { self.downcast_ref_unchecked() })
         } else {
             None
         }
@@ -96,12 +106,12 @@ impl<'a> AnyRefExt<'a> for &'a Header {
 trait UncheckedAnyRefExt<'a> {
     /// Returns a reference to the boxed value, assuming that it is of type `T`. This should only be
     /// called if you are ABSOLUTELY CERTAIN of `T` as you will get really wacky output if it’s not.
-    unsafe fn as_ref_unchecked<T: 'static>(self) -> &'a T;
+    unsafe fn downcast_ref_unchecked<T: 'static>(self) -> &'a T;
 }
 
 impl<'a> UncheckedAnyRefExt<'a> for &'a Header {
     #[inline]
-    unsafe fn as_ref_unchecked<T: 'static>(self) -> &'a T {
+    unsafe fn downcast_ref_unchecked<T: 'static>(self) -> &'a T {
         // Get the raw representation of the trait object
         let to: TraitObject = transmute_copy(&self);
 
@@ -114,12 +124,12 @@ impl<'a> UncheckedAnyRefExt<'a> for &'a Header {
 trait UncheckedAnyMutRefExt<'a> {
     /// Returns a reference to the boxed value, assuming that it is of type `T`. This should only be
     /// called if you are ABSOLUTELY CERTAIN of `T` as you will get really wacky output if it’s not.
-    unsafe fn as_mut_unchecked<T: 'static>(self) -> &'a mut T;
+    unsafe fn downcast_mut_unchecked<T: 'static>(self) -> &'a mut T;
 }
 
 impl<'a> UncheckedAnyMutRefExt<'a> for &'a mut Header {
     #[inline]
-    unsafe fn as_mut_unchecked<T: 'static>(self) -> &'a mut T {
+    unsafe fn downcast_mut_unchecked<T: 'static>(self) -> &'a mut T {
         // Get the raw representation of the trait object
         let to: TraitObject = transmute_copy(&self);
 
@@ -188,8 +198,8 @@ pub trait HeaderMarker<OutputType: Header + 'static> {
     fn header_name(&self) -> SendStr;
 }
 
-impl Header for Box<Header> {
-    fn parse_header(_raw: &[Vec<u8>]) -> Option<Box<Header>> {
+impl Header for Box<Header + 'static> {
+    fn parse_header(_raw: &[Vec<u8>]) -> Option<Box<Header + 'static>> {
         // Dummy impl; XXX: split to ToHeader/FromHeader?
         None
     }
@@ -240,7 +250,7 @@ impl<'a> Header for &'a Header {
 ///
 /// One thing out of the ordinary to be aware of is that all of these methods take `&mut self`, even
 /// `get` and `get_ref`; this is not ideal, but it is thus for a very good reason, an outcome of the
-/// hybrid typed/raw approach employed. The main practial effect of this is that you cannot take
+/// hybrid typed/raw approach employed. The main practical effect of this is that you cannot take
 /// references to more than one header at once; where possible, use `get_ref`, but it is
 /// acknowledged that it will not always be feasible to use it: this is why `get` exists, which
 /// clones the value, thus releasing the lock on the header collection.
@@ -264,30 +274,41 @@ impl<'a> Header for &'a Header {
 /// When we speak of a header in this library, we are not referring to the HTTP concept of a *header
 /// field*; we are dealing with a slightly higher abstraction than that.
 ///
-/// In HTTP/1.1, a message header is defined like this (RFC 2616, section 4.2 Message Headers):
+/// In HTTP/1.1, a message header is defined like this (RFC 7230, section 3.2 Header Fields):
 ///
-///         message-header = field-name ":" [ field-value ]
-///         field-name     = token
-///         field-value    = *( field-content | LWS )
-///         field-content  = <the OCTETs making up the field-value
-///                          and consisting of either *TEXT or combinations
-///                          of token, separators, and quoted-string>
+/// ```ignore
+///     header-field   = field-name ":" OWS field-value OWS
+///
+///     field-name     = token
+///     field-value    = *( field-content / obs-fold )
+///     field-content  = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+///     field-vchar    = VCHAR / obs-text
+///
+///     obs-fold       = CRLF 1*( SP / HTAB )
+///                    ; obsolete line folding
+///                    ; see Section 3.2.4    message-header = field-name ":" [ field-value ]
+/// ```
 ///
 /// This is something all web developers should be at least basically familiar with.
 ///
 /// The interesting part comes a little later in that section and is to do with how message headers
 /// *combine*:
 ///
-///     Multiple message-header fields with the same field-name MAY be
-///     present in a message if and only if the entire field-value for that
-///     header field is defined as a comma-separated list [i.e., #(values)].
-///     It MUST be possible to combine the multiple header fields into one
-///     "field-name: field-value" pair, without changing the semantics of the
-///     message, by appending each subsequent field-value to the first, each
-///     separated by a comma. The order in which header fields with the same
-///     field-name are received is therefore significant to the
-///     interpretation of the combined field value, and thus a proxy MUST NOT
-///     change the order of these field values when a message is forwarded.
+/// ```ignore
+/// A sender MUST NOT generate multiple header fields with the same field
+/// name in a message unless either the entire field value for that
+/// header field is defined as a comma-separated list [i.e., #(values)]
+/// or the header field is a well-known exception (as noted below).
+///
+/// A recipient MAY combine multiple header fields with the same field
+/// name into one "field-name: field-value" pair, without changing the
+/// semantics of the message, by appending each subsequent field value to
+/// the combined field value in order, separated by a comma.  The order
+/// in which header fields with the same field name are received is
+/// therefore significant to the interpretation of the combined field
+/// value; a proxy MUST NOT change the order of these field values when
+/// forwarding a message.
+/// ```
 ///
 /// In this library, what we call a header is not a single message header, but rather the
 /// combination of all message headers with the same field name; that is, a field-name plus *all*
@@ -416,11 +437,9 @@ impl<'a, H: Header> fmt::Show for HeaderShowAdapter<'a, H> {
 /// Convert a typed header into the raw HTTP header field value.
 pub fn fmt_header<H: Header>(h: &H) -> Vec<u8> {
     let mut output = MemWriter::new();
-    match h.fmt_header(&mut output) {
-        Ok(()) => (),
-        // Doesn’t impl Show at time of writing, so can’t just use .unwrap() ☹
-        Err(_format_error) => fail!("bad fmt_header impl, returned an error!"),
-    }
+    // Result.unwrap() is correct here, for MemWriter won’t make an IoError,
+    // and fmt_header is not permitted to introduce one of its own.
+    h.fmt_header(&mut output).unwrap();
     output.unwrap()
 }
 
@@ -442,9 +461,9 @@ mod tests {
 
         headers.set(EXPIRES, Past);
         assert_eq!(headers.mostly_get(&EXPIRES), &mut Typed(box Past));
-        expect(headers.get(EXPIRES), Past, bytes!("0"));
-        assert_eq!(headers.get_raw("expires"), vec![vec!['0' as u8]]);
-        expect(headers.get(EXPIRES), Past, bytes!("0"));
+        expect(headers.get(EXPIRES), Past, b"0");
+        assert_eq!(headers.get_raw("expires"), vec![vec![b'0']]);
+        expect(headers.get(EXPIRES), Past, b"0");
 
         headers.remove(&EXPIRES);
         assert_eq!(headers.get(EXPIRES), None);
