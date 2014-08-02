@@ -61,7 +61,7 @@ impl Header for Expires {
             None => Some(Past),
         }
     }
- 
+
     fn fmt_header(&self, w: &mut Writer) -> IoResult<()> {
         match *self {
             Past => write!(w, "0"),
@@ -87,18 +87,18 @@ impl Header for Tm {
             Ok(time) => return Some(time),
             Err(_) => ()
         }
- 
+
         match strptime(raw, "%A, %d-%b-%y %T %Z") {  // RFC 850, obsoleted by RFC 1036
             Ok(time) => return Some(time),
             Err(_) => ()
         }
- 
+
         match strptime(raw, "%c") {  // ANSI C's asctime() format
             Ok(time) => Some(time),
             Err(_) => None,
         }
     }
- 
+
     fn fmt_header(&self, w: &mut Writer) -> IoResult<()> {
         write!(w, "{}", self.to_utc().rfc822())
     }
@@ -124,7 +124,7 @@ impl Header for RetryAfter {
             }
         }
     }
- 
+
     fn fmt_header(&self, w: &mut Writer) -> IoResult<()> {
         match *self {
             DeltaRA(ref delta) => delta.fmt_header(w),
@@ -149,7 +149,7 @@ mod tests {
     fn expect_none<H: Header>(h: Option<H>) {
         assert!(h.is_none());
     }
- 
+
     #[test]
     fn test_expires() {
         let mut headers = Headers::new();
@@ -160,7 +160,7 @@ mod tests {
         expect(headers.get(EXPIRES), Past, bytes!("0"));
         headers.remove(&EXPIRES);
         expect_none(headers.get(EXPIRES));
-     
+
         expect_none(headers.get(DATE));
         let now = time::now();
         let now_raw = fmt_header(&now);
