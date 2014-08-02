@@ -4,7 +4,7 @@ extern crate time;
 use std;
 use std::io::IoResult;
 use std::str::{SendStr, Slice};
-use std::to_str::ToStr;
+use std::to_string::ToString;
 use std::from_str::from_str;
 use self::time::{strptime, Tm};
 use super::{Header, HeaderMarker};
@@ -40,12 +40,12 @@ impl Header for uint {
         from_str::<uint>(raw)
     }
     fn fmt_header(&self, w: &mut Writer) -> IoResult<()> {
-        write!(w, "{}", self.to_str())
+        write!(w, "{}", self.to_string())
     }
 }
 
 /// The data type for the ``expires`` header.
-#[deriving(Clone, Eq, Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub enum Expires {
     /// The Expires header had an invalid format, which MUST be interpreted as “in the past”.
     Past,
@@ -105,7 +105,7 @@ impl Header for Tm {
 }
 
 /// The data type for the ``Retry-After`` header.
-#[deriving(Clone, Eq, Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub enum RetryAfter {
     /// A valid Retry-After header date.
     DateRA(Tm),
@@ -155,9 +155,9 @@ mod tests {
         let mut headers = Headers::new();
         expect_none(headers.get(EXPIRES));
         headers.set(EXPIRES, Past);
-        expect(headers.get(EXPIRES), Past, bytes!("0"));
+        expect(headers.get(EXPIRES), Past, b"0");
         //assert_eq!(headers.get_raw("expires"), vec![vec!['0' as u8]]);
-        expect(headers.get(EXPIRES), Past, bytes!("0"));
+        expect(headers.get(EXPIRES), Past, b"0");
         headers.remove(&EXPIRES);
         expect_none(headers.get(EXPIRES));
 
@@ -193,23 +193,23 @@ mod tests {
         }
 
         {
-            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("foo"))]);
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(b"foo")]);
             assert_eq!(None, h);
         }
 
         {
-            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("42"))]);
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(b"42")]);
             assert_eq!(Some(DeltaRA(42u)), h);
         }
 
         {
-            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("42")),
-                                                              Vec::from_slice(bytes!("24"))]);
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(b"42"),
+                                                              Vec::from_slice(b"24")]);
             assert_eq!(None, h);
         }
 
         {
-            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(bytes!("-42"))]);
+            let h: Option<RetryAfter> = Header::parse_header([Vec::from_slice(b"-42")]);
             assert_eq!(None, h);
         }
     }
@@ -217,18 +217,18 @@ mod tests {
     #[test]
     fn test_age() {
         {
-            let h: Option<uint> = Header::parse_header([Vec::from_slice(bytes!("42"))]);
+            let h: Option<uint> = Header::parse_header([Vec::from_slice(b"42")]);
             assert_eq!(Some(42u), h);
         }
 
         {
-            let h: Option<uint> = Header::parse_header([Vec::from_slice(bytes!("42")),
-                                                        Vec::from_slice(bytes!("24"))]);
+            let h: Option<uint> = Header::parse_header([Vec::from_slice(b"42"),
+                                                        Vec::from_slice(b"24")]);
             assert_eq!(None, h);
         }
 
         {
-            let h: Option<uint> = Header::parse_header([Vec::from_slice(bytes!("-42"))]);
+            let h: Option<uint> = Header::parse_header([Vec::from_slice(b"-42")]);
             assert_eq!(None, h);
         }
     }
