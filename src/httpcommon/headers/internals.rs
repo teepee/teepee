@@ -23,7 +23,7 @@ use super::{Header, UncheckedAnyMutRefExt, fmt_header};
 /// - `raw_valid == true` requires `raw` to be some with `.len() > 0`.
 pub struct Item {
     /// Whether the raw header form is valid. If a mutable reference is taken to `typed`, this will
-    /// be set to `true`, meaning that for the purposes of reading, `raw` must be considered to be
+    /// be set to `false`, meaning that for the purposes of reading, `raw` must be considered to be
     /// invalid and must be produced once again. This exists as a slight efficiency improvement over
     /// just resetting `raw` to `None` in that, if the raw form is read again, the raw vectors can
     /// be reused; this is almost certain to be faster than dropping the vectors and creating new
@@ -39,7 +39,7 @@ pub struct Item {
     raw: Option<Vec<Vec<u8>>>,
 
     /// A strongly typed header which has been parsed from the raw value.
-    typed: Option<Box<Header> + 'static>,
+    typed: Option<Box<Header + 'static>>,
 }
 
 impl Item {
@@ -60,7 +60,7 @@ impl Item {
         Item {
             raw_valid: false,
             raw: None,
-            typed: Some(box typed as Box<Header>),
+            typed: Some(box typed as Box<Header + 'static>),
         }
     }
 
@@ -91,7 +91,7 @@ impl Item {
     /// Get a mutable reference to the raw representation of the header values.
     ///
     /// Because you may modify the raw representation through this mutable reference, calling this
-    /// this invalidates the typed representation; next time you want to access the value in typed
+    /// invalidates the typed representation; next time you want to access the value in typed
     /// fashion, it will be parsed from the raw form.
     ///
     /// Only use this if you need to mutate the raw form; if you don't, use `raw_ref`.
@@ -132,8 +132,8 @@ impl Item {
                 let h: Option<H> = Header::parse_header(self.raw.get_ref().as_slice());
                 match h {
                     Some(h) => {
-                        self.typed = Some(box h as Box<Header>);
-                        Some(unsafe { self.typed.get_mut_ref().as_mut_unchecked::<H>() })
+                        self.typed = Some(box h as Box<Header + 'static>);
+                        Some(unsafe { self.typed.get_mut_ref().downcast_mut_unchecked::<H>() })
                     },
                     None => None,
                 }
@@ -142,7 +142,7 @@ impl Item {
                 if invalidate_raw {
                     self.raw_valid = false;
                 }
-                Some(unsafe { h.as_mut_unchecked::<H>() })
+                Some(unsafe { h.downcast_mut_unchecked::<H>() })
             },
             Some(ref mut h) => {
                 if !self.raw_valid {
@@ -162,8 +162,8 @@ impl Item {
                 let otyped: Option<H> = Header::parse_header(self.raw.get_ref().as_slice());
                 match otyped {
                     Some(typed) => {
-                        *h = box typed as Box<Header>;
-                        Some(unsafe { h.as_mut_unchecked::<H>() })
+                        *h = box typed as Box<Header + 'static>;
+                        Some(unsafe { h.downcast_mut_unchecked::<H>() })
                     },
                     None => None,
                 }
@@ -171,35 +171,35 @@ impl Item {
         }
     }
 
-    /// Get a mutable reference to the raw representation of the header values.
+    /// Get a mutable reference to the typed representation of the header values.
     ///
-    /// Because you may modify the raw representation through this mutable reference, calling this
-    /// this invalidates the typed representation; next time you want to access the value in typed
-    /// fashion, it will be parsed from the raw form.
+    /// Because you may modify the typed representation through this mutable reference, calling
+    /// this invalidates the raw representation; next time you want to access the value in raw
+    /// fashion, it will be produced from the typed form.
     ///
-    /// Only use this if you need to mutate the raw form; if you don't, use `raw_ref`.
+    /// Only use this if you need to mutate the typed form; if you don't, use `typed_ref`.
     pub fn typed_mut_ref<'a, H: Header + 'static>(&'a mut self) -> Option<&'a mut H> {
         self.typed_mut_ref_internal(true)
     }
 
-    /// Get a reference to the raw representation of the header values.
+    /// Get a reference to the typed representation of the header values.
     ///
-    /// If a valid raw representation exists, it will be used, making this a very cheap operation;
-    /// if it does not, then the typed representation will be converted to raw form and you will
-    /// then get a reference to that. In summary, it doesn't much matter; you'll get your raw
+    /// If a valid typed representation exists, it will be used, making this a very cheap operation;
+    /// if it does not, then the raw representation will be converted to typed form and you will
+    /// then get a reference to that. In summary, it doesn't much matter; you'll get your typed
     /// reference.
     ///
-    /// See also `raw_mut_ref`, if you wish to mutate the raw representation.
+    /// See also `typed_mut_ref`, if you wish to mutate the typed representation.
     pub fn typed_ref<'a, H: Header + 'static>(&'a mut self) -> Option<&'a H> {
         self.typed_mut_ref_internal(false).map(|h| &*h)
     }
 
-    /// Set the raw form of the header.
+    /// Set the typed form of the header.
     ///
-    /// This invalidates the typed representation.
+    /// This invalidates the raw representation.
     pub fn set_typed<'a, H: Header + 'static>(&mut self, value: H) {
         self.raw_valid = false;
-        self.typed = Some(box value as Box<Header>);
+        self.typed = Some(box value as Box<Header + 'static>);
     }
 }
 
@@ -227,7 +227,7 @@ mod tests {
         let item = Item {
             raw_valid: raw_valid,
             raw: raw,
-            typed: typed.map(|h| box h as Box<Header>),
+            typed: typed.map(|h| box h as Box<Header + 'static>),
         };
         item.assert_invariants();
         item
@@ -280,8 +280,8 @@ mod tests {
         if item.typed.is_some() || other.typed.is_some() {
             let it = item.typed.get_ref();
             let ot = other.typed.get_ref();
-            let ir = it.as_ref::<H>().expect("assert_headers_eq: expected Some item, got None");
-            let or = ot.as_ref::<H>().expect("assert_headers_eq: expected Some other, got None");
+            let ir = it.downcast_ref::<H>().expect("assert_headers_eq: expected Some item, got None");
+            let or = ot.downcast_ref::<H>().expect("assert_headers_eq: expected Some other, got None");
             assert_eq!(ir, or);
         }
     }

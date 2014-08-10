@@ -7,23 +7,28 @@
 //! should be exported in the root of the HTTP client crate ``httpc`` so that people can write
 //! ``httpc::status`` instead of ``httpcommon::status``.
 
-#![crate_id = "httpcommon#0.1-pre"]
+#![crate_name = "httpcommon"]
 #![comment = "Common HTTP functionality for the Teepee project"]
 #![license = "MIT/ASL2"]
-#![crate_type = "dylib"]
-#![crate_type = "rlib"]
+#![crate_type = "lib"]
 
 #![doc(html_logo_url = "http://teepee.rs/logo.100.png",
        html_root_url = "http://www.rust-ci.org/teepee/teepee/doc/")]
 
-#![feature(globs, macro_rules)]
+#![feature(globs, macro_rules, phase, struct_variant)]
 
-#![deny(unnecessary_qualification)]
-#![deny(non_uppercase_statics)]
-#![deny(unnecessary_typecast)]
-#![deny(missing_doc)]
-//#![deny(unstable)]
-#![deny(unused_result)]
+#![warn(unnecessary_qualification)]
+#![warn(non_uppercase_statics)]
+#![warn(unnecessary_typecast)]
+#![warn(missing_doc)]
+//#![warn(unstable)]
+#![warn(unused_result)]
 
+#[phase(plugin)]
+extern crate phf_mac;
+extern crate phf;
+
+pub mod method;
 pub mod status;
 pub mod headers;
+pub mod grammar;

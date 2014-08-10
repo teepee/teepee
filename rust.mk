@@ -44,11 +44,11 @@ rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) \
 
 define CRATE_DEFINITIONS
 SRC_$(1) := $$(call rwildcard,src/$(1)/,*.rs)
-LIB_$(1) := build/$$(shell rustc --crate-file-name src/$(1)/lib.rs --crate-type rlib)
-ifeq ($$(LIB_$(1)),build/)
+LIB_$(1) := target/$$(shell rustc --print-file-name src/$(1)/lib.rs)
+ifeq ($$(LIB_$(1)),target/)
 # We may not have rustc or the lib.rs file may be broken.
 # But don't break the rules on that account.
-LIB_$(1) := build/lib$(1).dummy
+LIB_$(1) := target/lib$(1).dummy
 endif
 
 DEP_LIB_$(1) := $$(foreach dep,$$(DEP_$(1)), $$(LIB_$$(dep)))
@@ -58,29 +58,32 @@ define CRATE_RULES
 $(1): $$(LIB_$(1))
 
 $$(LIB_$(1)): $$(SRC_$(1)) $$(DEP_LIB_$(1))
-	@mkdir -p build/
-	$$(RUSTC) $$(RUSTFLAGS) src/$(1)/lib.rs --out-dir=build -L build
+	@mkdir -p target/
+	@# Remove any cargo library to avoid having multiple matching crates.
+	@# This is a nasty workaround and should not be considered wise.
+	rm -f $$(subst .rlib,-*.rlib,$$(LIB_$(1)))
+	$$(RUSTC) $$(RUSTFLAGS) src/$(1)/lib.rs --out-dir=target -L target -L target/deps
 
 $(1)-docs: doc/$(1)/index.html
 
 doc/$(1)/index.html: $$(SRC_$(1)) $$(DEP_LIB_$(1))
-	$$(RUSTDOC) src/$(1)/lib.rs -L build
+	$$(RUSTDOC) src/$(1)/lib.rs -L target -L target/deps
 
-build/$(1)-test: $$(SRC_$(1)) $$(DEP_LIB_$(1))
-	$$(RUSTC) $$(RUSTFLAGS) --test -o build/$(1)-test src/$(1)/lib.rs -L build
+target/$(1)-test: $$(SRC_$(1)) $$(DEP_LIB_$(1))
+	$$(RUSTC) $$(RUSTFLAGS) --test -o target/$(1)-test src/$(1)/lib.rs -L target -L target/deps
 
-build/$(1)-quicktest: $$(SRC_$(1)) $$(DEP_LIB_$(1))
-	$$(RUSTC) --test -o build/$(1)-quicktest src/$(1)/lib.rs -L build
+target/$(1)-quicktest: $$(SRC_$(1)) $$(DEP_LIB_$(1))
+	$$(RUSTC) --test -o target/$(1)-quicktest src/$(1)/lib.rs -L target -L target/deps
 
-$(1)-test: $(1) $(1)-doctest build/$(1)-test
-	build/$(1)-test --test
+$(1)-test: $(1) $(1)-doctest target/$(1)-test
+	target/$(1)-test --test
 
 $(1)-doctest: $$(SRC_$(1)) $$(LIB_$(1)) $$(DEP_LIB_$(1))
-	$$(RUSTDOC) -L build --test src/$(1)/lib.rs
+	$$(RUSTDOC) -L target -L target/deps --test src/$(1)/lib.rs
 
-# Can't wait for everything to build, optimised too? OK, you can save some time here.
-$(1)-quicktest: build/$(1)-quicktest
-	build/$(1)-quicktest --test
+# Can't wait for everything to target, optimised too? OK, you can save some time here.
+$(1)-quicktest: target/$(1)-quicktest
+	target/$(1)-quicktest --test
 
 .PHONY: $(1) $(1)-test $(1)-doctest $(1)-quicktest $(1)-docs
 SRC_ALL := $$(SRC_ALL) $$(SRC_$(1))
@@ -97,7 +100,7 @@ test: $(CRATES) $(foreach crate,$(CRATES), $(crate)-test)
 quicktest: $(foreach crate,$(CRATES), $(crate)-quicktest)
 
 clean:
-	rm -rf build/ doc/
+	rm -rf target/ doc/
 
 TAGS: $(SRC_ALL)
 	ctags -f TAGS --options="$(RUST_CTAGS)" --language=rust -R src/

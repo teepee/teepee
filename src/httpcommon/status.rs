@@ -1633,8 +1633,8 @@ impl FromPrimitive for StatusCode {
 
 impl PartialOrd for StatusCode {
     #[inline]
-    fn lt(&self, other: &StatusCode) -> bool {
-        (*self as u16) < (*other as u16)
+    fn partial_cmp(&self, other: &StatusCode) -> Option<Ordering> {
+        (*self as u16).partial_cmp(&(*other as u16))
     }
 }
 
