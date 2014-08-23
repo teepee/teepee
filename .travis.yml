@@ -4,7 +4,7 @@ env:
 install:
   - curl http://www.rust-lang.org/rustup.sh | sudo sh -
 script:
-  - cargo build
+  - cd src/httpcommon; cargo build
   - make all docs test
 after_script:
   - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
