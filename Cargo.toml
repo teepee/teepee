@@ -5,23 +5,14 @@ version = "0.0.0"
 authors = [ "Chris Morgan <me@chrismorgan.info>" ]
 #tags = ["web", "http", "library"]
 
-[[lib]]
-name = "httpcommon"
-path = "src/httpcommon/lib.rs"
+[dependencies.httpcommon]
+path = "src/httpcommon"
 
-[[lib]]
-name = "httpc"
-path = "src/httpc/lib.rs"
+[dependencies.httpc]
+path = "src/httpc"
 
-[[lib]]
-name = "httpd"
-path = "src/httpd/lib.rs"
+[dependencies.httpd]
+path = "src/httpd"
 
 #[dependencies.openssl]
 #git = "https://github.com/sfackler/rust-openssl.git"
-
-[dependencies.phf]
-git = "https://github.com/sfackler/rust-phf.git"
-
-[dependencies.phf_mac]
-git = "https://github.com/sfackler/rust-phf.git"
