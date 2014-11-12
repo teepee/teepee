@@ -4,7 +4,7 @@ use std::cmp::{PartialEq, Eq, PartialOrd, Ord};
 use std::fmt;
 use std::mem::transmute;
 
-/// An HTTP status code (`Status-Code` in RFC 2616).
+/// An HTTP status code (`Status-Code` in RFC 7231).
 ///
 /// This enum is absolutely exhaustive, covering all 500 possible values (100–599).
 ///
@@ -652,14 +652,14 @@ pub enum StatusCode {
     LengthRequired = 411,
     /// 412 Precondition Failed
     PreconditionFailed = 412,
-    /// 413 Request Entity Too Large
-    RequestEntityTooLarge = 413,
-    /// 414 Request-URI Too Long
-    RequestUriTooLong = 414,
+    /// 413 Payload Too Large
+    PayloadTooLarge = 413,
+    /// 414 URI Too Long
+    UriTooLong = 414,
     /// 415 Unsupported Media Type
     UnsupportedMediaType = 415,
-    /// 416 Requested Range Not Satisfiable
-    RequestedRangeNotSatisfiable = 416,
+    /// 416 Range Not Satisfiable
+    RangeNotSatisfiable = 416,
     /// 417 Expectation Failed
     ExpectationFailed = 417,
     /// 418 I'm a teapot
@@ -1359,10 +1359,10 @@ impl StatusCode {
             Gone => Some("Gone"),
             LengthRequired => Some("Length Required"),
             PreconditionFailed => Some("Precondition Failed"),
-            RequestEntityTooLarge => Some("Request Entity Too Large"),
-            RequestUriTooLong => Some("Request-URI Too Long"),
+            PayloadTooLarge => Some("Payload Too Large"),
+            UriTooLong => Some("URI Too Long"),
             UnsupportedMediaType => Some("Unsupported Media Type"),
-            RequestedRangeNotSatisfiable => Some("Requested Range Not Satisfiable"),
+            RangeNotSatisfiable => Some("Range Not Satisfiable"),
             ExpectationFailed => Some("Expectation Failed"),
             ImATeapot => Some("I'm a teapot"),
             AuthenticationTimeout => Some("Authentication Timeout"),
@@ -1663,27 +1663,29 @@ impl ToPrimitive for StatusCode {
 
 /// The class of an HTTP `Status-Code`.
 ///
-/// [RFC 2616, section 6.1.1 (Status Code and Reason
-/// Phrase)](https://tools.ietf.org/html/rfc2616#section-6.1.1):
+/// [RFC 7231, section 6 (Response Status Codes)]
+/// (https://tools.ietf.org/html/rfc7231#section-6):
 ///
-/// > The first digit of the Status-Code defines the class of response. The
-/// > last two digits do not have any categorization role.
+/// > The status-code element is a three-digit integer code giving the
+/// > result of the attempt to understand and satisfy the request.
 /// >
-/// > ...
-/// >
-/// > HTTP status codes are extensible. HTTP applications are not required
-/// > to understand the meaning of all registered status codes, though such
-/// > understanding is obviously desirable. However, applications MUST
+/// > HTTP status codes are extensible.  HTTP clients are not required to
+/// > understand the meaning of all registered status codes, though such
+/// > understanding is obviously desirable.  However, a client MUST
 /// > understand the class of any status code, as indicated by the first
-/// > digit, and treat any unrecognized response as being equivalent to the
-/// > x00 status code of that class, with the exception that an
-/// > unrecognized response MUST NOT be cached. For example, if an
-/// > unrecognized status code of 431 is received by the client, it can
-/// > safely assume that there was something wrong with its request and
-/// > treat the response as if it had received a 400 status code. In such
-/// > cases, user agents SHOULD present to the user the entity returned
-/// > with the response, since that entity is likely to include human-
-/// > readable information which will explain the unusual status.
+/// > digit, and treat an unrecognized status code as being equivalent to
+/// > the x00 status code of that class, with the exception that a
+/// > recipient MUST NOT cache a response with an unrecognized status code.
+/// >
+/// > For example, if an unrecognized status code of 471 is received by a
+/// > client, the client can assume that there was something wrong with its
+/// > request and treat the response as if it had received a 400 (Bad
+/// > Request) status code.  The response message will usually contain a
+/// > representation that explains the status.
+/// >
+/// > The first digit of the status-code defines the class of response.
+/// > The last two digits do not have any categorization role.  There are
+/// > five values for the first digit:
 ///
 /// This can be used in cases where a status code’s meaning is unknown, also,
 /// to get the appropriate *category* of status.
@@ -1718,29 +1720,29 @@ impl StatusClass {
     /// assert_eq!(ClientError.default_code(), BadRequest);
     /// ```
     ///
-    /// The use for this is outlined in [RFC 2616, section 6.1.1 (Status Code and Reason
-    /// Phrase)](https://tools.ietf.org/html/rfc2616#section-6.1.1):
+    /// The use for this is outlined in [RFC 7231, section 6 (Response Status Code)]
+    /// (https://tools.ietf.org/html/rfc7231#section-6):
     ///
-    /// > HTTP status codes are extensible. HTTP applications are not required
-    /// > to understand the meaning of all registered status codes, though such
-    /// > understanding is obviously desirable. However, applications MUST
+    /// > HTTP status codes are extensible.  HTTP clients are not required to
+    /// > understand the meaning of all registered status codes, though such
+    /// > understanding is obviously desirable.  However, a client MUST
     /// > understand the class of any status code, as indicated by the first
-    /// > digit, and treat any unrecognized response as being equivalent to the
-    /// > x00 status code of that class, with the exception that an
-    /// > unrecognized response MUST NOT be cached. For example, if an
-    /// > unrecognized status code of 431 is received by the client, it can
-    /// > safely assume that there was something wrong with its request and
-    /// > treat the response as if it had received a 400 status code. In such
-    /// > cases, user agents SHOULD present to the user the entity returned
-    /// > with the response, since that entity is likely to include human-
-    /// > readable information which will explain the unusual status.
+    /// > digit, and treat an unrecognized status code as being equivalent to
+    /// > the x00 status code of that class, with the exception that a
+    /// > recipient MUST NOT cache a response with an unrecognized status code.
+    /// >
+    /// > For example, if an unrecognized status code of 471 is received by a
+    /// > client, the client can assume that there was something wrong with its
+    /// > request and treat the response as if it had received a 400 (Bad
+    /// > Request) status code.  The response message will usually contain a
+    /// > representation that explains the status.
     ///
-    /// This is demonstrated thusly (I’ll use 432 rather than 431 as 431 *is* now in use):
+    /// This is demonstrated thusly (I’ll use 471):
     ///
     /// ```rust
-    /// # use httpcommon::status::{Code432, BadRequest};
+    /// # use httpcommon::status::{Code471, BadRequest};
     /// // Suppose we have received this status code.
-    /// let status = Code432;
+    /// let status = Code471;
     ///
     /// // Uh oh! Don’t know what to do with it.
     /// // Let’s fall back to the default:
