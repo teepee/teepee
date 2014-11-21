@@ -1,0 +1,14 @@
+[package]
+name = "httpcommon"
+version = "0.0.0"
+authors = [ "Chris Morgan <me@chrismorgan.info>" ]
+
+[lib]
+name = "httpcommon"
+path = "lib.rs"
+
+[dependencies.phf]
+git = "https://github.com/sfackler/rust-phf.git"
+
+[dependencies.phf_mac]
+git = "https://github.com/sfackler/rust-phf.git"
