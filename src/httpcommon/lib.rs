@@ -10,7 +10,7 @@
 #![doc(html_logo_url = "http://teepee.rs/logo.100.png",
        html_root_url = "http://www.rust-ci.org/teepee/teepee/doc/")]
 
-#![feature(concat_idents, unsafe_destructor, plugin, core)]
+#![feature(concat_idents, unsafe_destructor, plugin, core, slice_patterns)]
 
 #![warn(non_upper_case_globals, missing_docs, unused_results)]
 

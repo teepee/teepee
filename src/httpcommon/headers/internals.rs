@@ -85,7 +85,7 @@ impl Inner {
             match (&mut self.raw, &mut self.typed) {
                 (&mut Some(ref mut raw), &mut Some(ref typed)) => {
                     raw.truncate(1);
-                    raw.as_mut_slice()[0] = fmt_header(typed);
+                    raw[0] = fmt_header(typed);
                 },
 
                 (ref mut raw @ &mut None, &mut Some(ref typed)) => {
@@ -144,7 +144,7 @@ impl Inner {
                     match self.raw {
                         Some(ref mut raw) => {
                             raw.truncate(1);
-                            raw.as_mut_slice()[0] = fmt_header(h);
+                            raw[0] = fmt_header(h);
                         },
                         None => {
                             self.raw = Some(vec![fmt_header(h)]);
