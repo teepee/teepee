@@ -11,6 +11,41 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use self::internals::Item;
 pub use self::internals::{TypedRef, RawRef};
 
+pub use self::date_based::{EXPIRES, Expires, DATE, IF_MODIFIED_SINCE,
+                           IF_UNMODIFIED_SINCE, LAST_MODIFIED,
+                           RETRY_AFTER, RetryAfter, AGE};
+
+/// helper that simultaneously fetches the first raw header value, and
+/// ensures that we only successfully parse if there is one and only
+/// one such value.
+macro_rules! require_single_field {
+    ($field_values:expr) => ({
+        let mut iter = $field_values.iter();
+        match (iter.next(), iter.next()) {
+            (Some(ref field_value), None) => field_value.as_slice(),
+            _ => return None,
+        }
+    })
+}
+
+/// defines a struct and a ``HeaderMarker`` for it so that together they
+/// identify the same header type
+macro_rules! header {
+    (#[$attr:meta] $struct_ident:ident, $header_name:expr, $output_type:ty) => (
+        #[allow(missing_doc)]
+        #[allow(non_camel_case_types)]
+        #[$attr] 
+        pub struct $struct_ident;
+ 
+        impl HeaderMarker<$output_type> for $struct_ident {
+            fn header_name(&self) -> SendStr {
+                Slice($header_name)
+            }
+        }
+    )
+}
+
+pub mod date_based;
 mod internals;
 
 /// A trait defining the parsing of a header from a raw value.
