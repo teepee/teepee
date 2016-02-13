@@ -13,7 +13,7 @@ Something is still slowly happening with this, but don’t try doing anything
 with it.
 
 **The remainder of this document is out of date.**
-Use Hyper instead for now, too.
+Use [Hyper](https://github.com/hyperium/hyper) instead for now, too.
 
 ----
 
